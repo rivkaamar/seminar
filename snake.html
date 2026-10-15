@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>נחשים</title>
+<style>
+:root{
+  --ink:#261a52; --muted:#6a5c9e; --bg1:#f4efff; --bg2:#d6ccff;
+  --panel:rgba(255,255,255,.62); --line:rgba(80,56,170,.16);
+  --mint:#19c79b; --blue:#5b6cff; --pink:#ff5c86; --gold:#f2a100;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  color:var(--ink);
+  font-family:"Segoe UI","Arial Hebrew",Arial,sans-serif;
+  background:
+    radial-gradient(900px 600px at 90% 0%, rgba(120,150,255,.40), transparent 60%),
+    radial-gradient(900px 700px at 0% 100%, rgba(255,150,185,.38), transparent 60%),
+    radial-gradient(1200px 800px at 50% 30%, var(--bg1), var(--bg2));
+  overflow:hidden;
+}
+.app{display:flex;height:100vh;gap:22px;padding:20px 24px}
+.stage{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
+
+.hud{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
+.brand{font-size:34px;font-weight:800;line-height:1;margin-inline-end:auto;
+  background:linear-gradient(90deg,var(--mint),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:70px}
+.stat span{font-size:13px;color:var(--muted)}
+.stat b{font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.stat.gold b{color:#e08a00}
+.speed{min-width:150px}
+.speed .bar{height:8px;border-radius:99px;background:rgba(80,56,170,.15);overflow:hidden;margin-top:6px}
+.speed .fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--mint),#ffb020,var(--pink));transition:width .3s linear}
+.speed b{font-size:22px}
+
+.boardbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.board{position:relative;border-radius:22px;
+  box-shadow:0 0 0 4px rgba(255,255,255,.85),0 22px 50px rgba(90,60,200,.28)}
+canvas{display:block;width:100%;height:100%;border-radius:22px;touch-action:none}
+.overlay{position:absolute;inset:0;border-radius:22px;display:flex;align-items:center;justify-content:center;
+  background:rgba(244,239,255,.66);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px}
+.overlay.hidden{display:none}
+.card{width:min(380px,100%);max-height:100%;overflow:auto;text-align:center;padding:26px 24px;border-radius:18px;
+  background:rgba(255,255,255,.82);border:1px solid var(--line);box-shadow:0 10px 30px rgba(90,60,200,.18)}
+.card h1{margin:0 0 6px;font-size:36px;font-weight:800;
+  background:linear-gradient(90deg,var(--mint),var(--blue),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{margin:0 0 16px;color:var(--muted);font-size:15px;line-height:1.5}
+.card label{display:block;text-align:right;font-size:13px;color:var(--muted);margin-bottom:5px}
+input[type=text]{width:100%;padding:11px 13px;font-size:17px;font-family:inherit;color:var(--ink);
+  background:#fff;border:1px solid var(--line);border-radius:10px}
+input::placeholder{color:#a79cd0}
+.filebtns{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+button{font-family:inherit;font-size:15px;font-weight:700;border-radius:10px;padding:11px 14px;cursor:pointer;
+  color:var(--ink);background:#fff;border:1px solid var(--line)}
+button:hover:not(:disabled){background:#f1ecff}
+button.primary{width:100%;margin-top:14px;font-size:18px;padding:13px;border:0;color:#fff;
+  background:linear-gradient(90deg,#19c79b,#5b8cff)}
+button.primary:hover:not(:disabled){filter:brightness(1.07);background:linear-gradient(90deg,#19c79b,#5b8cff)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.status{min-height:20px;margin-top:10px;font-size:13px;color:var(--muted)}
+.status.ok{color:#0e9a76} .status.bad{color:#e0366a}
+.keys{margin-top:12px;font-size:12px;color:var(--muted)}
+
+.side{flex:0 0 310px;display:flex;flex-direction:column;min-height:0}
+.panel{flex:1;min-height:0;display:flex;flex-direction:column;border-radius:20px;padding:18px 16px;
+  background:var(--panel);border:1px solid rgba(255,255,255,.8);box-shadow:0 10px 30px rgba(90,60,200,.14)}
+.panel h2{margin:0;font-size:22px;font-weight:800}
+.panel .note{margin:2px 0 12px;font-size:12px;color:var(--muted)}
+.list{list-style:none;margin:0;padding:0;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;background:rgba(255,255,255,.78)}
+.row .rk{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:rgba(91,108,255,.14)}
+.row.r1 .rk{background:#ffcf4d;color:#4a3300}
+.row.r2 .rk{background:#cfd6ee;color:#262b45}
+.row.r3 .rk{background:#f0b48c;color:#4a2508}
+.row .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .nm small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.row .pt{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.row.me{background:rgba(25,199,155,.22);box-shadow:inset 0 0 0 1px rgba(14,154,118,.55)}
+.gap{text-align:center;color:var(--muted);line-height:.6;font-size:18px}
+.empty{color:var(--muted);font-size:14px;padding:6px 2px}
+
+@media (max-width:820px){
+  body{overflow:auto}
+  .app{flex-direction:column;height:auto;min-height:100%;padding:14px}
+  .boardbox{flex:none;width:100%;aspect-ratio:1}
+  .side{flex:none}
+  .panel{min-height:260px}
+  .brand{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){ .speed .fill{transition:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <div class="hud">
+      <div class="brand">נחשים</div>
+      <div class="stat gold"><span>ניקוד</span><b id="score">0</b></div>
+      <div class="stat"><span>השיא שלך</span><b id="mybest">0</b></div>
+      <div class="stat speed"><span>מהירות</span><b id="speedTxt">×1.0</b><div class="bar"><div class="fill" id="speedFill"></div></div></div>
+    </div>
+    <div class="boardbox" id="boxEl">
+      <div class="board" id="boardEl">
+        <canvas id="cv"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="card">
+            <h1 id="ovTitle">נחשים</h1>
+            <p class="lead" id="ovText">כותבות שם, מתחברות לקובץ הנתונים ומתחילות.</p>
+            <label for="nameInput">שם משתמשת</label>
+            <input type="text" id="nameInput" maxlength="20" autocomplete="off" placeholder="למשל: דנה">
+            <div class="filebtns" id="fileBtns">
+              <button class="primary" id="reuseBtn" style="display:none;margin-top:0"></button>
+              <button id="pickBtn">בחרי את קובץ הנתונים</button>
+              <button id="createBtn">צרי קובץ נתונים חדש</button>
+            </div>
+            <div class="status" id="status"></div>
+            <button class="primary" id="startBtn" disabled>התחלה</button>
+            <div class="keys">חצים או W A S D לניווט. רווח להשהיה.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="panel">
+      <h2>טבלת שיאים</h2>
+      <p class="note">מתעדכנת אוטומטית עם התוצאות של כולן</p>
+      <ol class="list" id="tableBox"><li class="empty">עוד לא נטען קובץ נתונים.</li></ol>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var N = 24;
+  var START = 140, MIN = 40, PER_FRUIT = 4; // ms per step: START - fruits*PER_FRUIT, never below MIN
+  var $ = function(id){return document.getElementById(id)};
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  var boxEl = $('boxEl'), boardEl = $('boardEl');
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var fileHandle = null, user = '', lastData = null;
+  var snake, prev, dir, queue, food, score, interval, elapsed, acc, particles = [];
+  var running = false, paused = false, cell = 10;
+
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+  function setStatus(msg, cls){var s=$('status'); s.textContent=msg; s.className='status'+(cls?' '+cls:'')}
+
+  // ---------- sizing ----------
+  function fit(){
+    var r = boxEl.getBoundingClientRect();
+    var size = Math.max(200, Math.floor(Math.min(r.width, r.height)));
+    boardEl.style.width = boardEl.style.height = size+'px';
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = cv.height = Math.floor(size*dpr);
+    cell = cv.width / N;
+  }
+  if('ResizeObserver' in window) new ResizeObserver(fit).observe(boxEl);
+  window.addEventListener('resize', fit);
+
+  // ---------- name ----------
+  try{ var saved = localStorage.getItem('snake_user'); if(saved) $('nameInput').value = saved; }catch(e){}
+  function getName(){ return $('nameInput').value.replace(/\s+/g,' ').trim(); }
+
+  // ---------- shared file ----------
+  var supported = ('showOpenFilePicker' in window) && ('showSaveFilePicker' in window);
+  if(!supported){
+    setStatus('הדפדפן הזה לא תומך בשיתוף קובץ. פתחי את המשחק ב-Chrome או ב-Edge.', 'bad');
+    $('pickBtn').disabled = true; $('createBtn').disabled = true;
+  }
+  var fileTypes = [{description:'קובץ נתונים', accept:{'application/json':['.json']}}];
+
+  async function readData(){
+    var f = await fileHandle.getFile();
+    var t = await f.text();
+    if(!t.trim()) return {scores:[]};
+    try{ var d = JSON.parse(t); return (d && Array.isArray(d.scores)) ? d : {scores:[]}; }
+    catch(e){ return {scores:[]}; }
+  }
+  async function writeData(d){
+    var w = await fileHandle.createWritable();
+    await w.write(JSON.stringify(d,null,1));
+    await w.close();
+  }
+  async function connected(h){
+    fileHandle = h;
+    try{
+      var p = await h.requestPermission({mode:'readwrite'});
+      if(p !== 'granted'){ fileHandle=null; setStatus('צריך לאשר גישת כתיבה לקובץ.','bad'); return; }
+      await readData();
+    }catch(e){ fileHandle=null; setStatus('לא הצלחתי לקרוא את הקובץ: '+e.message,'bad'); return; }
+    setStatus('מחוברת לקובץ הנתונים.','ok');
+    saveHandle(h);
+    $('fileBtns').style.display = 'none';
+    refreshTable(); updateStartState();
+  }
+  $('pickBtn').onclick = async function(){
+    try{ var hs = await window.showOpenFilePicker({types:fileTypes, multiple:false}); await connected(hs[0]); }
+    catch(e){ if(e.name!=='AbortError') setStatus('הבחירה נכשלה: '+e.message,'bad'); }
+  };
+  $('createBtn').onclick = async function(){
+    try{
+      var h = await window.showSaveFilePicker({suggestedName:'scores.json', types:fileTypes});
+      var w = await h.createWritable(); await w.write('{"scores":[]}'); await w.close();
+      await connected(h);
+    }catch(e){ if(e.name!=='AbortError') setStatus('היצירה נכשלה: '+e.message,'bad'); }
+  };
+  // ---------- remember the file between visits ----------
+  function idb(){
+    return new Promise(function(res,rej){
+      var r = indexedDB.open('snake_game',1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  async function saveHandle(h){
+    try{
+      var db = await idb();
+      await new Promise(function(res,rej){
+        var t = db.transaction('kv','readwrite'); t.objectStore('kv').put(h,'handle');
+        t.oncomplete = res; t.onerror = function(){ rej(t.error); };
+      });
+    }catch(e){}
+  }
+  async function loadHandle(){
+    try{
+      var db = await idb();
+      return await new Promise(function(res,rej){
+        var q = db.transaction('kv').objectStore('kv').get('handle');
+        q.onsuccess = function(){ res(q.result||null); };
+        q.onerror = function(){ rej(q.error); };
+      });
+    }catch(e){ return null; }
+  }
+  async function restoreHandle(){
+    if(!supported) return;
+    var h = await loadHandle(); if(!h) return;
+    try{
+      var q = await h.queryPermission({mode:'readwrite'});
+      if(q === 'granted'){ await connected(h); return; }
+    }catch(e){ return; }
+    var b = $('reuseBtn');
+    b.textContent = 'המשך עם הקובץ מהפעם הקודמת ('+h.name+')';
+    b.style.display = 'block';
+    b.onclick = function(){ connected(h); };
+  }
+
+  async function submitScore(name, sc){
+    if(!fileHandle) return false;
+    for(var i=0;i<6;i++){
+      try{
+        var d = await readData();
+        var key = name.toLowerCase();
+        var e = d.scores.find(function(s){return s.name.toLowerCase()===key});
+        if(!e){ e = {name:name, best:0, games:0}; d.scores.push(e); }
+        e.games = (e.games||0)+1;
+        if(sc > e.best){ e.best = sc; e.date = new Date().toISOString().slice(0,10); }
+        await writeData(d);
+        return true;
+      }catch(err){ await sleep(300 + Math.random()*700); }
+    }
+    return false;
+  }
+
+  // ---------- leaderboard ----------
+  function myBestFrom(d){
+    var n = (user || getName()).toLowerCase();
+    if(!n || !d) return 0;
+    var m = d.scores.find(function(s){return s.name.toLowerCase()===n});
+    return m ? m.best : 0;
+  }
+  function renderTable(d){
+    var box = $('tableBox'); box.textContent = '';
+    var rows = d.scores.slice().sort(function(a,b){return b.best-a.best});
+    if(!rows.length){ var em=document.createElement('li'); em.className='empty'; em.textContent='עוד אין תוצאות. תהיי הראשונה!'; box.appendChild(em); return; }
+    var me = (user || getName()).toLowerCase();
+    function addRow(r, i){
+      var li = document.createElement('li');
+      li.className = 'row' + (i<3?' r'+(i+1):'') + (me && r.name.toLowerCase()===me ? ' me':'');
+      var rk = document.createElement('span'); rk.className='rk'; rk.textContent = i+1;
+      var nm = document.createElement('span'); nm.className='nm'; nm.textContent = r.name;
+      var sm = document.createElement('small'); sm.textContent = (r.games||0)+' משחקים'; nm.appendChild(sm);
+      var pt = document.createElement('span'); pt.className='pt'; pt.textContent = r.best;
+      li.appendChild(rk); li.appendChild(nm); li.appendChild(pt); box.appendChild(li);
+    }
+    rows.slice(0,10).forEach(addRow);
+    var idx = me ? rows.findIndex(function(r){return r.name.toLowerCase()===me}) : -1;
+    if(idx >= 10){
+      var g = document.createElement('li'); g.className='gap'; g.textContent='...'; box.appendChild(g);
+      addRow(rows[idx], idx);
+    }
+  }
+  async function refreshTable(){
+    if(!fileHandle) return;
+    try{
+      lastData = await readData();
+      renderTable(lastData);
+      $('mybest').textContent = myBestFrom(lastData);
+    }catch(e){}
+  }
+  setInterval(refreshTable, 5000);
+
+  // ---------- game state ----------
+  function updateStartState(){
+    var ok = !!getName() && !!fileHandle;
+    $('startBtn').disabled = !ok;
+    if(lastData) $('mybest').textContent = myBestFrom(lastData);
+  }
+  $('nameInput').addEventListener('input', updateStartState);
+
+  function placeFood(){
+    while(true){
+      var f = {x:Math.floor(Math.random()*N), y:Math.floor(Math.random()*N)};
+      if(!snake.some(function(s){return s.x===f.x&&s.y===f.y})){ food=f; return; }
+    }
+  }
+  function updateHud(){
+    $('score').textContent = score;
+    var mult = START/interval;
+    $('speedTxt').textContent = '×'+mult.toFixed(1);
+    $('speedFill').style.width = Math.round(100*(START-interval)/(START-MIN))+'%';
+  }
+  function reset(){
+    var m = Math.floor(N/2);
+    snake = [{x:m,y:m},{x:m-1,y:m},{x:m-2,y:m}];
+    prev = snake.slice();
+    dir = {x:1,y:0}; queue = []; score = 0; interval = START; elapsed = 0; acc = 0; particles = [];
+    placeFood(); updateHud();
+  }
+  function start(){
+    user = getName();
+    if(!user || !fileHandle) return;
+    try{ localStorage.setItem('snake_user', user); }catch(e){}
+    reset(); running = true; paused = false;
+    $('overlay').classList.add('hidden');
+    refreshTable();
+  }
+  function burst(x,y){
+    if(reduce) return;
+    for(var i=0;i<14;i++){
+      var a = Math.random()*Math.PI*2, s = 2+Math.random()*5;
+      particles.push({x:x+.5,y:y+.5,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,gold:i%3===0});
+    }
+  }
+  function step(){
+    elapsed += interval;
+    if(queue.length) dir = queue.shift();
+    prev = snake.slice();
+    var head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+    var hit = head.x<0||head.y<0||head.x>=N||head.y>=N||
+      snake.some(function(s,i){return i<snake.length-1 && s.x===head.x && s.y===head.y});
+    if(hit){ gameOver(); return; }
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y){ score++; burst(food.x,food.y); placeFood(); }
+    else snake.pop();
+    interval = Math.max(MIN, START - score*PER_FRUIT);
+    updateHud();
+  }
+  async function gameOver(){
+    running = false; acc = 0; prev = snake.slice();
+    var finalScore = score, name = user;
+    $('ovTitle').textContent = 'המשחק נגמר';
+    $('ovText').textContent = 'ניקוד: '+finalScore+'. שומרת את התוצאה...';
+    $('startBtn').disabled = true; $('startBtn').textContent = 'עוד פעם';
+    $('overlay').classList.remove('hidden');
+    var ok = await submitScore(name, finalScore);
+    $('ovText').textContent = ok ? 'ניקוד: '+finalScore+'. התוצאה נשמרה.'
+      : 'ניקוד: '+finalScore+'. השמירה נכשלה. נסי שוב בעוד רגע.';
+    updateStartState();
+    await refreshTable();
+  }
+  function pause(on){
+    if(!running) return;
+    paused = on;
+  }
+
+  // ---------- input ----------
+  var keys = {
+    ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+    w:[0,-1], s:[0,1], a:[-1,0], d:[1,0], W:[0,-1], S:[0,1], A:[-1,0], D:[1,0]
+  };
+  function setDir(x,y){
+    var last = queue.length ? queue[queue.length-1] : dir;
+    if(x===-last.x && y===-last.y) return;
+    if(x===last.x && y===last.y) return;
+    if(queue.length<3) queue.push({x:x,y:y});
+    // react immediately: if enough of the current tick has passed, step now
+    if(running && !paused && queue.length===1 && acc >= interval*0.4){ acc = 0; step(); }
+  }
+  document.addEventListener('keydown', function(e){
+    var inField = document.activeElement && document.activeElement.tagName==='INPUT';
+    if(!running){
+      if(!inField && (e.key==='Enter'||e.key===' ') && !$('startBtn').disabled && !$('overlay').classList.contains('hidden')){ e.preventDefault(); start(); }
+      else if(inField && e.key==='Enter' && !$('startBtn').disabled){ e.preventDefault(); start(); }
+      return;
+    }
+    if(e.key===' '||e.key==='p'||e.key==='P'){ e.preventDefault(); pause(!paused); return; }
+    var k = keys[e.key]; if(!k) return;
+    e.preventDefault();
+    if(paused) paused = false;
+    setDir(k[0],k[1]);
+  });
+  var tx=0, ty=0;
+  boardEl.addEventListener('touchstart', function(e){ var t=e.touches[0]; tx=t.clientX; ty=t.clientY; }, {passive:true});
+  boardEl.addEventListener('touchend', function(e){
+    if(!running) return;
+    var t=e.changedTouches[0], dx=t.clientX-tx, dy=t.clientY-ty;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<24) return;
+    if(Math.abs(dx)>Math.abs(dy)) setDir(dx>0?1:-1,0); else setDir(0,dy>0?1:-1);
+  }, {passive:true});
+  window.addEventListener('blur', function(){ pause(true); });
+  $('startBtn').onclick = start;
+
+  // ---------- drawing ----------
+  function rr(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+  var HEAD=[20,200,160], TAIL=[91,108,255];
+  function mix(t){
+    return 'rgb('+Math.round(HEAD[0]+(TAIL[0]-HEAD[0])*t)+','+Math.round(HEAD[1]+(TAIL[1]-HEAD[1])*t)+','+Math.round(HEAD[2]+(TAIL[2]-HEAD[2])*t)+')';
+  }
+  function draw(now, alpha){
+    var c = cell, W = cv.width;
+    for(var y=0;y<N;y++) for(var x=0;x<N;x++){
+      ctx.fillStyle = (x+y)%2 ? '#e2dbff' : '#efeaff';
+      ctx.fillRect(x*c,y*c,c+1,c+1);
+    }
+    if(!snake) return;
+
+    // food
+    var pulse = reduce ? 1 : 1 + 0.09*Math.sin(now/170);
+    var fx=(food.x+.5)*c, fy=(food.y+.5)*c;
+    ctx.save();
+    ctx.shadowColor='rgba(255,92,134,.6)'; ctx.shadowBlur=c*0.7;
+    var fs = c*0.72*pulse;
+    var g = ctx.createLinearGradient(fx,fy-fs/2,fx,fy+fs/2);
+    g.addColorStop(0,'#ff8fae'); g.addColorStop(1,'#ff3d70');
+    ctx.fillStyle=g; rr(fx-fs/2,fy-fs/2,fs,fs,c*0.16); ctx.fill();
+    ctx.restore();
+
+    // snake
+    var n = snake.length, pos = [];
+    for(var i=n-1;i>=0;i--){
+      var to = snake[i], from = prev[Math.min(i,prev.length-1)];
+      var px = (from.x + (to.x-from.x)*alpha + .5)*c;
+      var py = (from.y + (to.y-from.y)*alpha + .5)*c;
+      pos[i] = [px,py];
+      var t = n>1 ? i/(n-1) : 0;
+      ctx.fillStyle = mix(t);
+      var sz = c*(0.94-0.08*t); rr(px-sz/2,py-sz/2,sz,sz,c*0.2); ctx.fill();
+    }
+    // head glow + eyes
+    var hp = pos[0];
+    ctx.save();
+    ctx.shadowColor='rgba(20,200,160,.55)'; ctx.shadowBlur=c*0.7;
+    ctx.fillStyle=mix(0); rr(hp[0]-c*0.49,hp[1]-c*0.49,c*0.98,c*0.98,c*0.26); ctx.fill();
+    ctx.restore();
+    var dx = dir.x, dy = dir.y, ex = -dy, ey = dx;
+    [-1,1].forEach(function(s){
+      var ox = hp[0] + dx*c*.14 + ex*s*c*.2, oy = hp[1] + dy*c*.14 + ey*s*c*.2;
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ox,oy,c*.13,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#1d1247'; ctx.beginPath(); ctx.arc(ox+dx*c*.04,oy+dy*c*.04,c*.065,0,Math.PI*2); ctx.fill();
+    });
+
+    // particles
+    particles.forEach(function(p){
+      ctx.globalAlpha = Math.max(0,p.life);
+      ctx.fillStyle = p.gold ? '#ffb800' : '#ff5c86';
+      ctx.beginPath(); ctx.arc(p.x*c,p.y*c,c*.12*p.life+1,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    if(paused){
+      ctx.fillStyle='rgba(244,239,255,.72)'; ctx.fillRect(0,0,W,W);
+      ctx.fillStyle='#261a52'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font='800 '+Math.round(W*0.07)+'px "Segoe UI",Arial,sans-serif';
+      ctx.fillText('מושהה', W/2, W/2 - W*0.03);
+      ctx.font='600 '+Math.round(W*0.03)+'px "Segoe UI",Arial,sans-serif';
+      ctx.fillStyle='#6a5c9e';
+      ctx.fillText('רווח או חץ כדי להמשיך', W/2, W/2 + W*0.04);
+    }
+  }
+
+  var last = performance.now();
+  function frame(now){
+    var dt = Math.min(now-last, 100); last = now;
+    if(running && !paused){
+      acc += dt;
+      while(running && acc >= interval){ acc -= interval; step(); }
+    }
+    if(!paused){
+      var s = dt/1000;
+      particles.forEach(function(p){ p.x+=p.vx*s; p.y+=p.vy*s; p.life-=s*2; });
+      particles = particles.filter(function(p){return p.life>0});
+    }
+    draw(now, 1);
+    requestAnimationFrame(frame);
+  }
+
+  fit(); reset(); updateStartState();
+  restoreHandle();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
