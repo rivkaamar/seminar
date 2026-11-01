@@ -29,16 +29,21 @@ export const MyTask = () =>{
         settaskList (taskList.filter(x=>x.id!=id))
     }
 
-    const change = (id)=>{
-        let y = taskList
-        y.filter(x=>x.id==x.id).forEach(d=>d.done=!d.done)
-        settaskList(y)
+    
+    const change = (id) => {
+        settaskList(taskList.map(task => {
+        if (task.id === id) {
+            return { ...task, done: !task.done };
+        }
+        return task; 
+        }));
     }
+ 
 
     return <>
     <button onClick={()=>f1("list")}>list</button>
     <button onClick={()=>f1("table")}>table</button>
     {islist&&<MyList taskList = {taskList}></MyList>}
-    {istable&&<MyTable taskList = {taskList}></MyTable>}
+    {istable&&<MyTable taskList = {taskList} dellfunc={dell} changefunc={change}></MyTable>}
     </>
 }

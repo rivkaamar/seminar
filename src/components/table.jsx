@@ -1,14 +1,28 @@
-export const MyTable = ({taskList})=> {
+import '../App.css';
+export const MyTable = ({taskList, dellfunc , changefunc})=> {
 
-    return <>
-    <table>
-    {taskList.map(x=> <tr>
-    <th>{x.id}</th>
-    <th>{x.description}</th>
-    <th>{x.done}</th>
-    <th>{x.time}</th>
-    </tr>)}
+  return (
+    <table className="tasks-table">
+      <thead>
+        <tr>
+          <th>משימה</th>
+          <th>שעה</th>
+          <th>סטטוס</th>
+          <th>מחיקה</th>
+          <th>שינוי סטטוס</th>
+        </tr>
+      </thead>
+      <tbody>
+        {taskList.map((task) => (
+          <tr key={task.id}>
+            <td>{task.description}</td>
+            <td>{task.time}</td>
+            <td>{task.done ? "בוצע ✅" : "ממתין ⏳"}</td>
+            <td><button onClick={()=>dellfunc(task.id)}>delete</button></td>
+            <td><button onClick={()=>changefunc(task.id)}>change status</button></td>
+          </tr>
+        ))}
+      </tbody>
     </table>
-    </>
-    
-}
+  );
+};
