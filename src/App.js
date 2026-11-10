@@ -1,15 +1,19 @@
 import logo from './logo.svg';
 import './App.css';
-import { First } from './components/first.jsx';
-import { Father } from './components/father.jsx';
-import { ABA } from './components/aba.jsx';
+import { Menu } from './components/menu';
+import { BrowserRouter } from 'react-router-dom';
+import { Routing } from './components/routing';
 
 function App() {
   return (
     <div className="App">
-      {/* <First></First> */}
-      {/* <Father></Father> */}
-      <ABA></ABA>
+      {/* <div style={{backgroundColor:'pink'}}> */}
+        <BrowserRouter>
+     <Menu></Menu>
+     <Routing></Routing>
+     </BrowserRouter>
+      {/* </div> */}
+    
     </div>
   );
 }
